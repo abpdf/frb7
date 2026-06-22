@@ -27,14 +27,14 @@ jobs:
           flutter-version: '3.19.6'
           cache: true
 
-      # 2. Rust 1.77.2
+      # 2. Rust 1.77.2（生成器可能仍需 rustc 解析项目结构）
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: 1.77.2
           override: true
 
-      # 3. 配置 crates.io 镜像为 abpdf（所有依赖从此拉取）
+      # 3. 配置 crates.io 镜像（备用，非必须）
       - name: Configure cargo registry
         run: |
           mkdir -p ~/.cargo
@@ -45,16 +45,18 @@ jobs:
           registry = "https://github.com/abpdf/crates.io-index"
           EOF
 
-      # 4. 从 GitHub 安装 flutter_rust_bridge_codegen（不经过 crates.io）
-      - name: Install flutter_rust_bridge_codegen from GitHub
+      # 4. 下载预编译的 flutter_rust_bridge_codegen v2.0.0
+      - name: Download flutter_rust_bridge_codegen binary
         run: |
-          git clone --depth 1 https://github.com/fzyzcjy/flutter_rust_bridge.git
-          cd flutter_rust_bridge/frb_codegen
-          cargo install --path .
+          wget -O frb.tgz https://github.com/fzyzcjy/flutter_rust_bridge/releases/download/v2.0.0/flutter_rust_bridge_codegen-x86_64-unknown-linux-gnu-v2.0.0.tgz
+          tar -xzf frb.tgz
+          chmod +x flutter_rust_bridge_codegen
+          sudo mv flutter_rust_bridge_codegen /usr/local/bin/
 
-      # 5. 生成桥接代码（路径请根据项目调整）
-      - name: Run code generator
-        run: flutter_rust_bridge_codegen --help
+      # 5. 使用 create 子命令生成桥接代码（v2.0.0 支持）
+      - name: Generate bridge with 'create'
+        run: |
+          flutter_rust_bridge_codegen create ${{ env.CRATE_NAME }}
 
       # 6. 提交并推送生成的代码（覆盖仓库）
       - name: Commit and push generated code
