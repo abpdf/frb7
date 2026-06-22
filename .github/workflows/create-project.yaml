@@ -1,0 +1,64 @@
+name: Build Flutter Rust App
+
+on:
+  workflow_dispatch:   # 允许手动触发
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+  CRATE_NAME: frb7     # 你的 Rust crate 名称 (与 Cargo.toml 中一致)
+
+jobs:
+  generate-bridge:
+    name: Generate FFI Bridge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 使用默认 GITHUB_TOKEN 即可，后续 git push 需要写入权限
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 设置 Flutter (指定版本 3.19.6)
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+          cache: true
+
+      # 设置 Rust (固定版本 1.77.2)
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.77.2
+          override: true
+
+      # 更换 crates.io 索引为指定镜像
+      - name: Configure cargo registry
+        run: |
+          mkdir -p ~/.cargo
+          cat > ~/.cargo/config.toml <<EOF
+          [source.crates-io]
+          replace-with = "abpdf"
+          [source.abpdf]
+          registry = "https://github.com/abpdf/crates.io-index"
+          EOF
+
+      # 安装并运行代码生成器
+      - name: Install & Run Flutter Rust Bridge Generator
+        run: |
+          cargo install flutter_rust_bridge_codegen
+          flutter_rust_bridge_codegen create ${{ env.CRATE_NAME }}
+
+      # 将生成的代码直接提交并推送回仓库 (覆盖储存库)
+      - name: Commit and push generated code
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          # 检查是否有变更，避免空提交
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Generate Flutter Rust Bridge code [skip ci]"
+            git push
+          fi
