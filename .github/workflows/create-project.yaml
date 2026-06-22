@@ -47,7 +47,7 @@ jobs:
       - name: Install & Run Flutter Rust Bridge Generator
         run: |
           cargo install flutter_rust_bridge_codegen
-          flutter_rust_bridge_codegen create ${{ env.CRATE_NAME }}
+          flutter_rust_bridge_codegen --help
 
       # 将生成的代码直接提交并推送回仓库 (覆盖储存库)
       - name: Commit and push generated code
