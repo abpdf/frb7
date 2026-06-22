@@ -49,7 +49,7 @@ jobs:
       - name: Install flutter_rust_bridge_codegen from GitHub
         run: |
           git clone --depth 1 https://github.com/fzyzcjy/flutter_rust_bridge.git
-          cd flutter_rust_bridge/flutter_rust_codegen
+          cd flutter_rust_bridge/frb_codegen
           cargo install --path .
 
       # 5. 生成桥接代码（路径请根据项目调整）
